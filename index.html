@@ -3,19 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Date Saver</title>
+    <title>BOE Coruña Extractor</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="card">
-      <h1>Store a Date</h1>
-      <p>Select a date and store it with a simulated delay.</p>
+    <div id="searchCard" class="card">
+      <h1>BOE & BORME Coruña Extractor</h1>
+      <p>Select a date to search for Coruña-related items in the BOE and BORME.</p>
       <label for="datePicker">Date</label>
       <input id="datePicker" type="date" />
-      <button id="saveButton" type="button">Store Date</button>
+      <button id="saveButton" type="button">Search</button>
       <div id="status" aria-live="polite"></div>
-    </main>
-    <script src="script.js"></script>
+    </div>
+    <div id="resultsContainer" class="results-container hidden"></div>
+    <footer class="page-footer">
+      <p>
+        © made with ♥ by <a href="https://github.com/ficiverson/coruna-extractor" target="_blank" rel="noopener noreferrer">ficiverson</a>
+      </p>
+    </footer>
+    <script src="boe-script.js"></script>
+    <script src="borme-script.js"></script>
   </body>
 </html>
 
