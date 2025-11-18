@@ -8,6 +8,7 @@ const ORIGINS = {
 const CORS_PROXY = "https://corsproxy.io/?";
 
 const datePicker = document.querySelector("#datePicker");
+const searchTermInput = document.querySelector("#searchTerm");
 const saveButton = document.querySelector("#saveButton");
 const status = document.querySelector("#status");
 const searchCard = document.querySelector("#searchCard");
@@ -299,7 +300,7 @@ const resetToInitialState = () => {
   clearStatus();
 };
 
-const displayResults = (items) => {
+const displayResults = (items, searchTerm) => {
   resultsContainer.innerHTML = "";
   
   if (items.length === 0) {
@@ -307,7 +308,7 @@ const displayResults = (items) => {
     noResultsCard.className = "card no-results";
     noResultsCard.innerHTML = `
       <h2>No results found</h2>
-      <p>No items containing "Coruña" were found for this date.</p>
+      <p>No items containing "${searchTerm}" were found for this date.</p>
       <button type="button" class="back-button" aria-label="Go back to search">
         <span aria-hidden="true">←</span> Back to Search
       </button>
@@ -329,7 +330,7 @@ const displayResults = (items) => {
     backButton.addEventListener("click", resetToInitialState);
     
     const title = document.createElement("h2");
-    title.textContent = `Found ${items.length} item${items.length !== 1 ? "s" : ""} containing "Coruña"`;
+    title.textContent = `Found ${items.length} item${items.length !== 1 ? "s" : ""} containing "${searchTerm}"`;
     
     headerContent.appendChild(backButton);
     headerContent.appendChild(title);
@@ -346,10 +347,10 @@ const displayResults = (items) => {
   resultsContainer.classList.remove("hidden");
 };
 
-const processPayload = (payload, origin) => {
+const processPayload = (payload, origin, searchTerm) => {
   if (!payload) return [];
-  const corunaItems = searchForCoruna(payload);
-  console.log(`[filter:${origin}] Found ${corunaItems.length} raw matches containing "Coruña"`);
+  const corunaItems = searchForCoruna(payload, searchTerm);
+  console.log(`[filter:${origin}] Found ${corunaItems.length} raw matches containing "${searchTerm}"`);
   const normalizedItems = corunaItems
     .map((item) => normalizeItem(item, origin))
     .filter(isValidNormalizedItem);
@@ -393,27 +394,35 @@ const formatDateForApi = (dateString) => {
 
 const onSaveClick = async () => {
   console.log("[action] Save button clicked");
-  const value = datePicker.value;
-  if (!value) {
+  const dateValue = datePicker.value;
+  const searchTerm = searchTermInput.value.trim() || "Coruña";
+  
+  if (!dateValue) {
     console.log("[validation] No date selected");
     setStatus("Please pick a date first.", "error");
     return;
   }
+  
+  if (!searchTerm) {
+    console.log("[validation] No search term provided");
+    setStatus("Please enter a search term.", "error");
+    return;
+  }
 
   saveButton.classList.add("hidden");
-  console.log(`[operation] Preparing request for ${value}`);
+  console.log(`[operation] Preparing request for ${dateValue} with term "${searchTerm}"`);
   const hasBormeFetcher = Boolean(window.corunaSources?.fetchBormePayload);
   setStatus(`Searching ${hasBormeFetcher ? "BOE + BORME" : "BOE"}...`, "loading");
 
-  const formattedDate = formatDateForApi(value);
+  const formattedDate = formatDateForApi(dateValue);
 
   const tasks = [
-    fetchBoePayload(formattedDate).then((payload) => processPayload(payload, ORIGINS.BOE)),
+    fetchBoePayload(formattedDate).then((payload) => processPayload(payload, ORIGINS.BOE, searchTerm)),
   ];
 
   if (hasBormeFetcher) {
     tasks.push(
-      window.corunaSources.fetchBormePayload(formattedDate).then((payload) => processPayload(payload, ORIGINS.BORME))
+      window.corunaSources.fetchBormePayload(formattedDate).then((payload) => processPayload(payload, ORIGINS.BORME, searchTerm))
     );
   }
 
@@ -436,10 +445,10 @@ const onSaveClick = async () => {
     const errorText =
       errors.length > 0
         ? `No results. ${errors.join(" | ")}`
-        : "No Coruña entries found for this date.";
+        : `No entries containing "${searchTerm}" found for this date.`;
     setStatus(errorText, "error");
   } else {
-    const summary = `Found ${aggregated.length} Coruña entr${aggregated.length === 1 ? "y" : "ies"}.`;
+    const summary = `Found ${aggregated.length} entr${aggregated.length !== 1 ? "ies" : "y"} containing "${searchTerm}".`;
     if (errors.length) {
       setStatus(`${summary} Some sources failed: ${errors.join(" | ")}`, "error");
     } else {
@@ -447,7 +456,7 @@ const onSaveClick = async () => {
     }
   }
 
-  displayResults(aggregated);
+  displayResults(aggregated, searchTerm);
 
   saveButton.classList.remove("hidden");
   console.log("[operation] Button shown again");
